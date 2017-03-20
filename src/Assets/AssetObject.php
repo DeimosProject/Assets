@@ -41,8 +41,7 @@ class AssetObject
         {
             return $this->path
                 . (0 === strpos($this->path, '?') ? '&' : '?')
-                . 'updatedAt=' .
-                filemtime($this->path);
+                . filemtime($this->path);
         }
 
         return $this->path;
