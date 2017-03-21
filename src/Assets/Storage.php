@@ -8,7 +8,7 @@ class Storage extends Iterator
     /**
      * @var AssetObject[]
      */
-    protected $storage;
+    protected $storage = [];
 
     /**
      * @var string
@@ -19,6 +19,11 @@ class Storage extends Iterator
      * @var string
      */
     protected $type;
+
+    /**
+     * @var array
+     */
+    protected $sort = [];
 
     /**
      * Storage constructor.
@@ -39,39 +44,86 @@ class Storage extends Iterator
 
     /**
      * @param string $url
+     * @param string $name
      *
      * @return AssetObject
      */
-    public function push($url)
+    public function push($url, $name = null)
     {
-        $this->storage[$url] = $this->makeObject($url);
+        $index = count($this->storage);
 
-        return $this->storage[$url];
+        $this->storage[$index]       = $this->makeObject($url);
+        $this->sort[$name ?: $index] = $index;
+
+        return $this->storage[$index];
     }
 
     /**
      * @param string $url
+     * @param string $name
      *
      * @return AssetObject
      */
-    public function shift($url)
+    public function shift($url, $name = null)
     {
+        $index  = count($this->storage);
         $object = $this->makeObject($url);
 
-        $this->storage = array_merge(
-            [$url => $object],
-            $this->storage
-        );
+        $this->sort[$name ?: $index] = $index;
+        $this->storage += [$index => $object];
 
         return $object;
     }
 
     /**
-     * @param string $url
+     * @param string $keySearch
+     * @param string $newKey
+     * @param mixed  $value
+     *
+     * @return $this
+     *
+     * @throws \InvalidArgumentException
      */
-    public function remove($url)
+    protected function swap($keySearch, $newKey, $value)
     {
-        unset($this->storage[$url]);
+        if (!array_key_exists($keySearch, $this->storage))
+        {
+            throw new \InvalidArgumentException('Key `' . $keySearch . '` not found!');
+        }
+
+        $key = array_search($keySearch, $this->sort, true);
+        unset($this->sort[$newKey]);
+        unset($this->sort[$key]);
+
+        $this->sort[$key]    = $keySearch;
+        $this->sort[$newKey] = $value;
+
+        return $this;
+    }
+
+    /**
+     * before to string
+     */
+    protected function sort()
+    {
+        foreach ($this->storage as $key => $object)
+        {
+            foreach ($object->getAfter() as $item)
+            {
+                if ($key < $this->sort[$item])
+                {
+                    $this->swap($key, $item, $this->sort[$item]);
+                }
+            }
+
+            foreach ($object->getBefore() as $item)
+            {
+                if ($key > $this->sort[$item])
+                {
+                    $this->swap($key, $item, $this->sort[$item]);
+                }
+            }
+        }
     }
 
     /**
@@ -80,8 +132,11 @@ class Storage extends Iterator
     public function __toString()
     {
         $toString = [];
-        foreach ($this as $object)
+        $this->sort();
+
+        foreach ($this->sort as $iterator)
         {
+            $object     = $this->storage[$iterator];
             $typeClass  = $this->type;
             $toString[] = new $typeClass($object);
         }

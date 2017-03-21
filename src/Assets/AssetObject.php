@@ -16,9 +16,19 @@ class AssetObject
     protected $path;
 
     /**
-     * @var array
+     * @var []
      */
     protected $properties = [];
+
+    /**
+     * @var []
+     */
+    protected $before = [];
+
+    /**
+     * @var []
+     */
+    protected $after = [];
 
     /**
      * Object constructor.
@@ -41,10 +51,34 @@ class AssetObject
         {
             return $this->path
                 . (0 === strpos($this->path, '?') ? '&' : '?')
-                . filemtime($this->path);
+                . filemtime($this->root . $this->path);
         }
 
         return $this->path;
+    }
+
+    /**
+     * @param array $names
+     *
+     * @return $this
+     */
+    public function after(array $names)
+    {
+        $this->after = array_merge($this->after, $names);
+
+        return $this;
+    }
+
+    /**
+     * @param array $names
+     *
+     * @return $this
+     */
+    public function before(array $names)
+    {
+        $this->before = array_merge($this->before, $names);
+
+        return $this;
     }
 
     /**
@@ -66,6 +100,22 @@ class AssetObject
     public function getProperties()
     {
         return $this->properties;
+    }
+
+    /**
+     * @return array
+     */
+    public function getBefore()
+    {
+        return $this->before;
+    }
+
+    /**
+     * @return array
+     */
+    public function getAfter()
+    {
+        return $this->after;
     }
 
 }
